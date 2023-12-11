@@ -1,19 +1,25 @@
-use std::{
-    cmp::Ordering,
-    collections::{BinaryHeap, HashMap, HashSet},
-};
+use std::{cmp::Ordering, collections::HashMap};
 
 fn main() {
     let inputs = parse_input();
-    let result = best_first_search(&inputs, "AAA", "ZZZ");
+    // let result = part_1(&inputs, "AAA", "ZZZ");
 
-    println!("{}", result);
-    println!("{}", result.len());
+    let start: Vec<String> = inputs
+        .nodes
+        .keys()
+        .filter(|k| k.ends_with('A'))
+        .map(|f| f.clone())
+        .collect();
+    println!("{}", start.len());
+    let result2 = part_2(&inputs, start, &'Z');
+
+    // println!("{}", result);
+    println!("{}", result2);
 }
 
-enum Direction {
-    Left,
-    Right,
+struct Input {
+    nodes: HashMap<String, Node>,
+    directions: Vec<char>,
 }
 
 #[derive(Clone)]
@@ -22,16 +28,6 @@ struct Node {
     left: String,
     right: String,
     path: String,
-}
-
-impl Node {
-    fn from_parent(&mut self, parent_path: String, direction: Direction) {
-        self.path.push_str(&parent_path);
-        self.path.push(match direction {
-            Direction::Left => 'L',
-            Direction::Right => 'R',
-        });
-    }
 }
 
 impl PartialEq for Node {
@@ -57,13 +53,13 @@ impl Ord for Node {
     }
 }
 
-fn parse_input() -> HashMap<String, Node> {
+fn parse_input() -> Input {
     let mut inputs = HashMap::<String, Node>::new();
 
     println!("start");
     let mut raw_line = String::new();
     let _ = std::io::stdin().read_line(&mut raw_line);
-    let is_lr = raw_line.starts_with('L');
+    let directions: Vec<char> = raw_line.trim().chars().collect();
     let _ = std::io::stdin().read_line(&mut raw_line);
     loop {
         raw_line.clear();
@@ -82,18 +78,8 @@ fn parse_input() -> HashMap<String, Node> {
             .trim_end_matches(')')
             .split(", ");
 
-        let first = paths.next().unwrap().trim().to_string();
-        let second = paths.next().unwrap().trim().to_string();
-        let left: String;
-        let right: String;
-
-        if is_lr {
-            left = first;
-            right = second;
-        } else {
-            right = first;
-            left = second;
-        }
+        let left = paths.next().unwrap().trim().to_string();
+        let right = paths.next().unwrap().trim().to_string();
 
         let node = Node {
             value: value.clone(),
@@ -105,44 +91,64 @@ fn parse_input() -> HashMap<String, Node> {
         inputs.entry(value).or_insert(node);
     }
 
-    return inputs;
+    return Input {
+        nodes: inputs,
+        directions,
+    };
 }
 
-fn best_first_search(inputs: &HashMap<String, Node>, start: &str, end: &str) -> String {
-    let mut encountered = HashSet::<String>::new();
-    let mut p_queue = BinaryHeap::<Node>::new();
+fn part_1(inputs: &Input, start: &str, end: &str) -> usize {
+    let mut steps = 0;
+    let mut next = start.to_string();
+    for direction in &inputs.directions {
+        steps += 1;
 
-    let parent = inputs.get(start).unwrap();
-
-    let mut left_node = inputs.get(&parent.left).unwrap().clone();
-    left_node.from_parent(parent.path.clone(), Direction::Left);
-    let mut right_node = inputs.get(&parent.right).unwrap().clone();
-    right_node.from_parent(parent.path.clone(), Direction::Right);
-
-    p_queue.push(left_node);
-    p_queue.push(right_node);
-
-    while let Some(node) = p_queue.pop() {
-        // Alternatively we could have continued to find all shortest paths
-        if node.value == end {
-            return node.path;
+        if *direction == 'L' {
+            next = inputs.nodes.get(&next).unwrap().left.clone();
+        } else {
+            next = inputs.nodes.get(&next).unwrap().right.clone();
         }
 
-        // Important as we may have already found a better way
-        if !encountered.insert(node.value) {
-            continue;
+        if next == end {
+            return steps;
         }
-
-        let mut l_node = inputs.get(&node.left).unwrap().clone();
-        l_node.from_parent(node.path.clone(), Direction::Left);
-        let mut r_node = inputs.get(&node.right).unwrap().clone();
-        r_node.from_parent(node.path.clone(), Direction::Right);
-
-        p_queue.push(l_node);
-        p_queue.push(r_node);
     }
 
-    return String::new();
+    return steps + part_1(&inputs, &next, end);
+}
+
+fn part_2(inputs: &Input, start: Vec<String>, end: &char) -> usize {
+    let mut steps = 0;
+    let mut next = start;
+    for direction in &inputs.directions {
+        steps += 1;
+
+        println!("{}", steps);
+        let mut temp = Vec::<String>::new();
+        for s in next {
+            if *direction == 'L' {
+                temp.push(inputs.nodes.get(&s).unwrap().left.clone());
+            } else {
+                temp.push(inputs.nodes.get(&s).unwrap().right.clone());
+            }
+        }
+
+        let mut done = true;
+        for value in &temp {
+            if !value.ends_with(*end) {
+                done = false;
+                break;
+            }
+        }
+
+        if done {
+            return steps;
+        } else {
+            next = temp;
+        }
+    }
+
+    return steps + part_2(&inputs, next, end);
 }
 
 // RL
