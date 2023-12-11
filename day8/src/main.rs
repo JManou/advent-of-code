@@ -97,7 +97,7 @@ fn parse_input() -> Input {
     };
 }
 
-fn part_1(inputs: &Input, start: &str, end: &str) -> usize {
+fn part_1(inputs: &Input, start: &str, end: &char) -> usize {
     let mut steps = 0;
     let mut next = start.to_string();
     for direction in &inputs.directions {
@@ -109,7 +109,7 @@ fn part_1(inputs: &Input, start: &str, end: &str) -> usize {
             next = inputs.nodes.get(&next).unwrap().right.clone();
         }
 
-        if next == end {
+        if next.ends_with(*end) {
             return steps;
         }
     }
@@ -118,37 +118,17 @@ fn part_1(inputs: &Input, start: &str, end: &str) -> usize {
 }
 
 fn part_2(inputs: &Input, start: Vec<String>, end: &char) -> usize {
-    let mut steps = 0;
     let mut next = start;
-    for direction in &inputs.directions {
-        steps += 1;
+    let mut results = Vec::<usize>::new();
 
-        println!("{}", steps);
-        let mut temp = Vec::<String>::new();
-        for s in next {
-            if *direction == 'L' {
-                temp.push(inputs.nodes.get(&s).unwrap().left.clone());
-            } else {
-                temp.push(inputs.nodes.get(&s).unwrap().right.clone());
-            }
-        }
-
-        let mut done = true;
-        for value in &temp {
-            if !value.ends_with(*end) {
-                done = false;
-                break;
-            }
-        }
-
-        if done {
-            return steps;
-        } else {
-            next = temp;
-        }
+    for s in next {
+        results.push(part_1(inputs, &s, end))
     }
 
-    return steps + part_2(&inputs, next, end);
+    return results
+        .iter()
+        .map(|f| *f)
+        .fold(1usize, num_integer::lcm::<usize>);
 }
 
 // RL
