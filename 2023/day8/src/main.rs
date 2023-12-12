@@ -24,7 +24,6 @@ struct Input {
 
 #[derive(Clone)]
 struct Node {
-    value: String,
     left: String,
     right: String,
     path: String,
@@ -82,7 +81,6 @@ fn parse_input() -> Input {
         let right = paths.next().unwrap().trim().to_string();
 
         let node = Node {
-            value: value.clone(),
             left: left,
             right: right,
             path: String::new(),
@@ -118,7 +116,7 @@ fn part_1(inputs: &Input, start: &str, end: &char) -> usize {
 }
 
 fn part_2(inputs: &Input, start: Vec<String>, end: &char) -> usize {
-    let mut next = start;
+    let next = start;
     let mut results = Vec::<usize>::new();
 
     for s in next {
